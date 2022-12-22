@@ -1,0 +1,5 @@
+*.raw
+*.raw.gz
+*.hdf5
+model_1
+__pycache__
