@@ -299,6 +299,7 @@ class TumorSim:
         self.s7 = 0
 
         self.grad = False
+        self.time_arr = copy.copy(time_array)
         self.time_array = sorted(time_array)
 
         self.loc = '{:s}/pcl_{:d}.loc'.format(output, seed)
@@ -310,19 +311,94 @@ class TumorSim:
 
         self.mhd_data = self.mhd_read._read_mhd(self.mhd)
         self.full_anatomy = self.mhd_read._load_phantom_array_from_gzip(self.mhd_data,output,seed)
-        coord = self.mhd_read._read_loc(self.loc)
-        self.coord_x = int(coord[0])
-        self.coord_y = int(coord[1])
-        self.coord_z = int(coord[2])
-        self.crop_anatomy = self.mhd_read.raw_file_crop(self.full_anatomy,self.coord_x,self.coord_z,self.coord_y, self.N, output, seed)
-        self.anatomy = "{:s}/pcl_{:d}_test.raw".format(output, seed)
+        self.coord = self.mhd_read._read_loc(self.loc)
+        self.loc_it = 0
+        #self.coord_x = int(coord[0])
+        #self.coord_y = int(coord[1])
+        #self.coord_z = int(coord[2])
+        #self.crop_anatomy = self.mhd_read.raw_file_crop(self.full_anatomy,self.coord_x,self.coord_z,self.coord_y, self.N, output, seed)
+        #self.anatomy = "{:s}/pcl_{:d}_test.raw".format(output, seed)
 
         
 
 
 
 
+    def re_init(self):
+        self.nutr = np.ones((1,self.wlen))
+        self.waste = np.ones((1,self.wlen))
+        self.TAF = np.zeros((1,self.wlen))
         
+        self.pres = np.zeros(self.wlen, dtype=int)
+        self.activity = np.zeros((1,self.wlen))
+        
+        self.celltype = np.zeros((1,self.wlen))[0]
+        
+        self.cell_energy = np.zeros((self.wlen))
+        self.vess = [dict() for i in range(self.wlen)]
+        self.vess_tag = np.array([[0]*self.wlen]*1).astype(float)
+        self.vess_age = np.array([[0]*self.wlen]*1)
+
+        self.hotpoint = np.array([[0]*self.wlen]*1)
+        self.branchrecord = np.array([[0]*self.wlen]*1)
+
+        self.stackvalue = [0, 0]
+        self.vessgrowth_flag = 0
+        self.stackcount = 0
+
+        self.counter1 = 0
+        self.counter2 = 0
+
+        self.spic = {
+            "age": [[0]*self.wlen]*1,
+            "dir": [[0]*self.wlen]*1,
+            "par": [[0]*self.wlen]*1
+                }
+        self.spic_index = 0
+
+        self.local_data = [[0]*self.wlen]*1
+
+        self.sprout_index = []
+
+        self.days_forAndrea = 0
+
+        self.days = 0
+
+        self.ana_no = 0
+        
+        self.mass_dim = 0
+
+        self.starttime = 199
+        self.weight_old = 0
+        self.act_old = 0
+
+        self.cl = 0
+        self.c2 = 0
+        self.c3 = 0
+        self.c4 = 0
+        self.c5 = 0
+        self.c6 = 0
+        self.c7 = 0
+
+        self.al = 0
+        self.a2 = 0
+        self.a3 = 0
+        self.a4 = 0
+        self.a5 = 0
+        self.a6 = 0
+        self.a7 = 0
+
+        self.sl = 0
+        self.s2 = 0
+        self.s3 = 0
+        self.s4 = 0
+        self.s5 = 0
+        self.s6 = 0
+        self.s7 = 0
+
+        self.grad = False
+        self.time_array = copy.copy(self.time_arr)
+        self.time_array = sorted(self.time_array)
 
         
 
@@ -1219,75 +1295,86 @@ class TumorSim:
         """
             Main function of the class
         """
-        boundary = DetectBoundary(self.nod3xyz, self.leng)
-        self.InitCancerCell()
-        self.ReadAnatomyData()
-        t1 = np.setdiff1d(np.array(range(1,self.wlen)),boundary)
+        while(len(self.coord) > 0):
+            if self.loc_it != 0:
+                self.re_init()
+            self.loc_it += 1
+            print("Starting Location {:d}".format(self.loc_it))
+            coord = self.coord.pop(0)
+            coord_x = int(coord[0])
+            coord_y = int(coord[1])
+            coord_z = int(coord[2])
+            self.crop_anatomy = self.mhd_read.raw_file_crop(self.full_anatomy,coord_x,coord_z,coord_y, self.N, self.output, self.seed)
+            self.anatomy = "{:s}/pcl_{:d}_test.raw".format(self.output, self.seed)
+            boundary = DetectBoundary(self.nod3xyz, self.leng)
+            self.InitCancerCell()
+            self.ReadAnatomyData()
+            t1 = np.setdiff1d(np.array(range(1,self.wlen)),boundary)
 
-        # 1 day = 33 iterations
-        # 40 days = 1321 iterations
-        # 60 days = 1981 iterations
+            # 1 day = 33 iterations
+            # 40 days = 1321 iterations
+            # 60 days = 1981 iterations
 
-        # calit = (25*self.days)+1
-        calit = (33*self.time_array[-1])+2
-        days = self.time_array.pop(0)
-        it_days = (33 * days) + 1
+            # calit = (25*self.days)+1
+            calit = (33*self.time_array[-1])+2
+            days = self.time_array.pop(0)
+            it_days = (33 * days) + 1
 
-        for iteration in range(0, calit):
-            v_age = self.vess_age.reshape(self.N, self.N, self.N)
-            v_rad = v_age/(self.k_AR2+v_age)
-            if (iteration)%20 == 0:
-                self.pres = np.zeros(self.wlen)
-                cindex = np.array(np.where(self.celltype != 0))
-                vindex = np.array(np.where(self.vess_tag.flat > 0))
+            for iteration in range(0, calit):
+                v_age = self.vess_age.reshape(self.N, self.N, self.N)
+                v_rad = v_age/(self.k_AR2+v_age)
+                if (iteration)%20 == 0:
+                    self.pres = np.zeros(self.wlen)
+                    cindex = np.array(np.where(self.celltype != 0))
+                    vindex = np.array(np.where(self.vess_tag.flat > 0))
+                    
+                    self.CTP(cindex)
+                    self.VTP(vindex)
+
+                    self.pres = self.pres/self.p0
+                    ux,uy,uz = self.Gradient(t1) 
+                    self.grad = True
+
+                p = np.reshape(self.pres,(self.N, self.N, self.N))
+                weight = (self.cap_pres - p *self.p0)/ self.cap_pres
+                weight[np.where(weight< 0)] = 0
                 
-                self.CTP(cindex)
-                self.VTP(vindex)
+                self.Nutrients(weight, v_rad, boundary, ux, uy, uz)
+                self.Metabolic(weight,v_rad,boundary,ux,uy,uz)
+                self.TAFEq(v_rad, boundary, ux, uy, uz)
+                self.weight_old = np.sum(weight)
+                    
+                #self.Nutrients(weight, v_rad, boundary, ux, uy, uz)
+                self.growth()
+                self.Angiogenesis(iteration)
 
-                self.pres = self.pres/self.p0
-                ux,uy,uz = self.Gradient(t1) 
-                self.grad = True
-
-            p = np.reshape(self.pres,(self.N, self.N, self.N))
-            weight = (self.cap_pres - p *self.p0)/ self.cap_pres
-            weight[np.where(weight< 0)] = 0
-            
-            self.Nutrients(weight, v_rad, boundary, ux, uy, uz)
-            self.Metabolic(weight,v_rad,boundary,ux,uy,uz)
-            self.TAFEq(v_rad, boundary, ux, uy, uz)
-            self.weight_old = np.sum(weight)
-                
-            #self.Nutrients(weight, v_rad, boundary, ux, uy, uz)
-            self.growth()
-            self.Angiogenesis(iteration)
-
-            if iteration == it_days:
-                self.days_forAndrea = days
-                ana_data = write.writetoraw_portable(self.celltype, self.ana_no, self.mass_dim, self.N, self.wlen, self.days_forAndrea,self.anatomy,self.output, self.seed)
-                write.write_to_fullanatomy(ana_data, self.ana_no, self.coord_x,self.coord_y,self.coord_z, self.days_forAndrea, self.full_anatomy, self.N, self.output, self.seed)
-                if len(self.time_array) > 0:
-                    days = self.time_array.pop(0)
-                    it_days = (33*days) + 1
-            """
-            if iteration > 249:
-                if iteration < 374:
-                    if (iteration)%7 == 0:
-                        self.days_forAndrea = round((iteration)/7)
-                        ana_data = write.writetoraw_portable(self.celltype, self.ana_no, self.mass_dim, self.N, self.wlen, self.days_forAndrea,self.anatomy)
-                        write.write_to_fullanatomy(ana_data, self.ana_no, self.coord_x,self.coord_y,self.coord_z, self.days_forAndrea, self.full_anatomy, self.N)
-                else:
-                    if (iteration)%4 == 0:
-                        self.days_forAndrea = round((iteration)/4)
-                        ana_data = write.writetoraw_portable(self.celltype, self.ana_no, self.mass_dim, self.N, self.wlen, self.days_forAndrea,self.anatomy)
-                        write.write_to_fullanatomy(ana_data, self.ana_no, self.coord_x,self.coord_y,self.coord_z, self.days_forAndrea, self.full_anatomy, self.N)
-            """
+                if iteration == it_days:
+                    self.days_forAndrea = days
+                    ana_data = write.writetoraw_portable(self.celltype, self.ana_no, self.mass_dim, self.N, self.wlen, self.days_forAndrea,self.anatomy,self.output, self.seed, self.loc_it)
+                    write.write_to_fullanatomy(ana_data, self.ana_no, coord_x,coord_y,coord_z, self.days_forAndrea, self.full_anatomy, self.N, self.output, self.seed, self.loc_it)
+                    if len(self.time_array) > 0:
+                        days = self.time_array.pop(0)
+                        it_days = (33*days) + 1
+                """
+                if iteration > 249:
+                    if iteration < 374:
+                        if (iteration)%7 == 0:
+                            self.days_forAndrea = round((iteration)/7)
+                            ana_data = write.writetoraw_portable(self.celltype, self.ana_no, self.mass_dim, self.N, self.wlen, self.days_forAndrea,self.anatomy)
+                            write.write_to_fullanatomy(ana_data, self.ana_no, self.coord_x,self.coord_y,self.coord_z, self.days_forAndrea, self.full_anatomy, self.N)
+                    else:
+                        if (iteration)%4 == 0:
+                            self.days_forAndrea = round((iteration)/4)
+                            ana_data = write.writetoraw_portable(self.celltype, self.ana_no, self.mass_dim, self.N, self.wlen, self.days_forAndrea,self.anatomy)
+                            write.write_to_fullanatomy(ana_data, self.ana_no, self.coord_x,self.coord_y,self.coord_z, self.days_forAndrea, self.full_anatomy, self.N)
+                """
         self.mhd_read.write_mhd(self.mhd_data, self.output, self.seed)
             
 
             
 
 start_time = time.time()
-ts = TumorSim('model_1', 201, [5,6,7,8,9,10],3)
+ts = TumorSim('model_1', 201, [5,6,7,8,9,10],5)
 
 cProfile.run('ts.main()', 'output.dat')
 

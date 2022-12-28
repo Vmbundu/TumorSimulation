@@ -99,7 +99,7 @@ class MHD_Reader:
             m = re.findall('\d+', line)
             if m[3] == '2':
                 result.append(m)
-        return result[0]
+        return result
 
     def raw_file_crop(self, array, x,y,z, size, results_folder, seed):
         range = int(size/2)
