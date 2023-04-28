@@ -81,7 +81,7 @@ import time
 import cProfile
 import pstats
 from pstats import SortKey
-from MHD_Reader import MHD_Reader
+#from MHD_Reader import MHD_Reader
 import array as arr
 
 class TumorSim:
@@ -93,8 +93,9 @@ class TumorSim:
         :param size: An int that determines the size of the tumor and the environemnt 
         :param time_array: an array that houses the different time point that the tumor records
         :param seed: the seed value that determines the filename that will be outputed 
+        :param locations: contains a list of location that the tumor will grow in
     """
-    def __init__(self, output, size, time_array, seed) -> None:
+    def __init__(self, phantom, output, size, time_array, seed, locations) -> None:
 
         
         
@@ -132,7 +133,7 @@ class TumorSim:
         self.vess_age = np.array([[0]*self.wlen]*1)
 
         self.hotpoint = np.array([[0]*self.wlen]*1)
-        self.branchrecord = np.array([[0]*self.wlen]*1)
+        self.branchrecord = np.zeros((self.wlen))
 
         self.stackvalue = [0, 0]
         self.vessgrowth_flag = 0
@@ -151,6 +152,7 @@ class TumorSim:
 
             vindex[i] = math.trunc(xx+yy*self.N+zz*self.slen)
 
+        self.vess = [dict() for i in range(self.wlen)]
         for j in range(0,vindex.size):
             s = vindex[j]
             self.vess[s] = {'count':0, 'pare':[], 'son':[], 'direct':[]}
@@ -270,7 +272,7 @@ class TumorSim:
 
         }
 
-        self.starttime = 199
+        self.starttime = 100
         self.weight_old = 0
         self.act_old = 0
 
@@ -302,16 +304,18 @@ class TumorSim:
         self.time_arr = copy.copy(time_array)
         self.time_array = sorted(time_array)
 
-        self.loc = '{:s}/pcl_{:d}.loc'.format(output, seed)
-        self.anatomy = '{:s}/pc_{:d}_crop.raw.gz'.format(output, seed)
-        self.mhd = '{:s}/pc_{:d}_crop.mhd'.format(output, seed)
+        # self.loc = '{:s}/pcl_{:d}.loc'.format(output, seed)
+        # self.anatomy = '{:s}/pc_{:d}_crop.raw.gz'.format(output, seed)
+        #self.mhd = '{:s}/pc_{:d}_crop.mhd'.format(output, seed)
         self.seed = seed
         self.output = output
-        self.mhd_read = MHD_Reader()
+        #self.mhd_read = MHD_Reader()
 
-        self.mhd_data = self.mhd_read._read_mhd(self.mhd)
-        self.full_anatomy = self.mhd_read._load_phantom_array_from_gzip(self.mhd_data,output,seed)
-        self.coord = self.mhd_read._read_loc(self.loc)
+        #self.mhd_data = self.mhd_read._read_mhd(self.mhd)
+        #self.full_anatomy = self.mhd_read._load_phantom_array_from_gzip(self.mhd_data,output,seed)
+        self.full_anatomy = phantom
+        # self.coord = self.mhd_read._read_loc(self.loc)
+        self.coord = locations
         self.loc_it = 0
         #self.coord_x = int(coord[0])
         #self.coord_y = int(coord[1])
@@ -438,28 +442,31 @@ class TumorSim:
 
         init_cell = init_cell*20
 
-    def ReadAnatomyData(self):
+    def ReadAnatomyData(self, anatomy):
         """
             Method that reads the anatomy file of the tumor environment.
             In addition, it converts the data into a 3D array and sets 
             the multiplication factor for each respective element in the
             environment.
         """
-        fileID = open('Input_parameters.txt', 'r')
+        fileID = open('Victre/Input_parameters.txt', 'r')
         A = fileID.readlines()
         self.days = int(A[0].rstrip())
         self.ana_no = int(A[1].rstrip())
         self.mass_dim = int(A[2].rstrip())
 
 
-        #atmy_filepath = 'AnatomyData/fatty_bckgrnd' + str(self.ana_no) + '.raw'
-        atmy_filepath = self.anatomy
-        fID = open(atmy_filepath, 'r')
+        
+        #atmy_filepath = "{:s}/{:d}/pc_{:d}_crop.raw.gz".format(
+        #    self.results_folder, self.seed, self.seed)
+        #fID = open(atmy_filepath, 'r')
         #Make sure to implements global variables when I complete main function
-        ana = np.fromfile(fID, dtype=np.uint8, count = self.N * self.N * self.N, sep="")
-        fID.close()
+        #ana = np.fromfile(fID, dtype=np.uint8, count = self.N * self.N * self.N, sep="")
+        #fID.close()
 
+        ana = anatomy
         data = copy.deepcopy(ana)
+        data = data.reshape(self.N*self.N*self.N)
         np.place(ana, ana != 88, 1)
         #Similiar case for this file as well 
         # Noted: Diffcult to gauge results with that of the one in MATLAB, determining 
@@ -471,7 +478,7 @@ class TumorSim:
         for elem in ligan:
             data[elem] = 88
 
-        atmy_thickliga_filepath = 'Results_Raw/PostProcessed_Anatomy/anatomy' + str(self.ana_no) + 'thickliga.raw'
+        atmy_thickliga_filepath = 'Victre/results/anatomy' + str(self.ana_no) + 'thickliga.raw'
         fID = open(atmy_thickliga_filepath, 'w')
         data1 = np.array(data, dtype="uint8")
         data1.tofile(atmy_thickliga_filepath)
@@ -846,10 +853,13 @@ class TumorSim:
             # Density as defined by Equations (3c)
             density = np.sum(self.celltype[s+self.index_bias]>0)/len(self.index_bias)
 
-            # Euclidean distance in Equation (2), (4a)
-            # dist = sum((variables.nod3xyz[pres_bias,0:] - np.tile(variables.nod3xyz[s, 0:],(len(pres_bias),1)))**2) ** .5
-            dist = np.array((np.sum((self.nod3xyz[s + self.pres_bias, 0:] - np.tile(self.nod3xyz[s, 0:],(len(self.pres_bias),1))) ** 2, axis=1))**.5)
-
+            try:
+                # Euclidean distance in Equation (2), (4a)
+                # dist = sum((variables.nod3xyz[pres_bias,0:] - np.tile(variables.nod3xyz[s, 0:],(len(pres_bias),1)))**2) ** .5
+                dist = np.array((np.sum((self.nod3xyz[s + self.pres_bias, 0:] - np.tile(self.nod3xyz[s, 0:],(len(self.pres_bias),1))) ** 2, axis=1))**.5)
+            except IndexError:
+                continue
+            
             # Alpha in Equation (4b) is assumed to be constant
             amplitude=self.amplitude0
 
@@ -1096,11 +1106,14 @@ class TumorSim:
     
     def Angiogeneis3D(self,s):
         """
-            Methods to calculate and produce Angiongeneis wihtin
+            Methods to calculate and produce Angiongeneis within
             the tumor environment
             :param s: the data point location in which Angiogenesis is 
                       being calculated
         """
+        if 'count' not in self.vess[s]:
+            self.vess[s]['count'] = 0
+            
         if self.vess[s]['count'] >= (10*((1/10)**(1/30))**(30 - self.pres[s]*60)):
             gro = self.direction( s, self.index_bias)
             if np.any(gro):
@@ -1132,7 +1145,7 @@ class TumorSim:
                         else:
                             self.vess_age[s+self.index_bias[gro]] = self.vess_age[s]/2
                         #self.iter((s+self.index_bias[gro])[0], s, self.index_bias[gro])
-                        self.vess[(s+self.index_bias[gro])]['count'] = 0
+                        self.vess[s+self.index_bias[gro]]['count'] = 0
                         self.vess[s+self.index_bias[gro]]['pare'] = s
                         self.vess[s+self.index_bias[gro]]['son'] = []
                         self.vess[s+self.index_bias[gro]]['direct'] = self.index_bias[gro]
@@ -1145,8 +1158,12 @@ class TumorSim:
                             self.vess_age[0:,s+self.index_bias[gro]] = 1
                         else:
                             self.vess_age[s+self.index_bias[gro]] = self.vess_age[s]/2
-                        self.iter((s+self.index_bias[gro])[0], s, self.index_bias[gro])
-
+                        #self.iter((s+self.index_bias[gro])[0], s, self.index_bias[gro])
+                        self.vess[s+self.index_bias[gro]]['count'] = 0
+                        self.vess[s+self.index_bias[gro]]['pare'] = s
+                        self.vess[s+self.index_bias[gro]]['son'] = []
+                        self.vess[s+self.index_bias[gro]]['direct'] = self.index_bias[gro]
+                        
                         index_bias2 = np.setdiff1d(self.index_bias,self.index_bias[gro])
 
                         gro = self.direction(s, index_bias2)
@@ -1155,7 +1172,8 @@ class TumorSim:
 
                             self.vess[s]['son'] = s+index_bias2[gro]
                             self.vess_tag[s] = 1
-                            self.vess_tag[s+self.index_bias2[gro]] = 0.95
+                            #Changed from self
+                            self.vess_tag[s+index_bias2[gro]] = 0.95
                             if self.vess_age[s] > 1:
                                 self.vess_age[s+index_bias2[gro]] = 1
                             else:
@@ -1290,11 +1308,23 @@ class TumorSim:
             self.Spreadhotpoint(0.3e-3)
             self.sprout_index = self.SproutCheck()
 
+    def anatomy_crop(self, array, x, y, z):
+        range = int(self.N/2)
+        arr = array[x-range:x+range+1, y-range:y+range+1, z-range:z+range+1]
+        raw_pathway = "{:s}/{:d}/cropped_anatomy.raw".format(
+            self.output, self.seed, self.seed)
+        fID = open(raw_pathway, 'w')
+        arr1 = np.array(arr, dtype="uint8")
+        arr1.tofile(raw_pathway)
+        fID.close()
+        return arr
+
 
     def main(self):
         """
             Main function of the class
         """
+        start_time = time.time()
         while(len(self.coord) > 0):
             if self.loc_it != 0:
                 self.re_init()
@@ -1304,11 +1334,17 @@ class TumorSim:
             coord_x = int(coord[0])
             coord_y = int(coord[1])
             coord_z = int(coord[2])
-            self.crop_anatomy = self.mhd_read.raw_file_crop(self.full_anatomy,coord_x,coord_z,coord_y, self.N, self.output, self.seed)
-            self.anatomy = "{:s}/pcl_{:d}_test.raw".format(self.output, self.seed)
+
+            #Could potentially call cropped
+            self.crop_anatomy = self.anatomy_crop(self.full_anatomy,coord_x,coord_z,coord_y)
+            self.anatomy = "{:s}/{:d}/cropped_anatomy.raw".format(
+                            self.output, self.seed)
+            if np.size(self.crop_anatomy) < (self.N * self.N * self.N):
+                print("Skipping this location: Array is too small")
+                continue
             boundary = DetectBoundary(self.nod3xyz, self.leng)
             self.InitCancerCell()
-            self.ReadAnatomyData()
+            self.ReadAnatomyData(self.crop_anatomy)
             t1 = np.setdiff1d(np.array(range(1,self.wlen)),boundary)
 
             # 1 day = 33 iterations
@@ -1319,8 +1355,9 @@ class TumorSim:
             calit = (33*self.time_array[-1])+2
             days = self.time_array.pop(0)
             it_days = (33 * days) + 1
-
+            
             for iteration in range(0, calit):
+                print("Interations: {:d}".format(iteration))
                 v_age = self.vess_age.reshape(self.N, self.N, self.N)
                 v_rad = v_age/(self.k_AR2+v_age)
                 if (iteration)%20 == 0:
@@ -1350,8 +1387,12 @@ class TumorSim:
 
                 if iteration == it_days:
                     self.days_forAndrea = days
-                    ana_data = write.writetoraw_portable(self.celltype, self.ana_no, self.mass_dim, self.N, self.wlen, self.days_forAndrea,self.anatomy,self.output, self.seed, self.loc_it)
-                    write.write_to_fullanatomy(ana_data, self.ana_no, coord_x,coord_y,coord_z, self.days_forAndrea, self.full_anatomy, self.N, self.output, self.seed, self.loc_it)
+                    print("Day: {:d}".format(days))
+                    with open("{:s}/time.txt".format(self.output), 'w') as f:
+                        f.write("Days: {:d} Time: {:d} seconds \n".format(days, int(time.time() - start_time)))
+
+                    write.writetoraw_portable(self.celltype, self.ana_no, self.mass_dim, self.N, self.wlen, self.days_forAndrea,self.anatomy,self.output, self.seed, self.loc_it)
+                    write.write_to_fullanatomy(self.celltype.reshape(self.N,self.N,self.N), self.ana_no, coord_x,coord_y,coord_z, self.days_forAndrea, self.full_anatomy, self.N, self.output, self.seed, self.loc_it)
                     if len(self.time_array) > 0:
                         days = self.time_array.pop(0)
                         it_days = (33*days) + 1
@@ -1368,11 +1409,11 @@ class TumorSim:
                             ana_data = write.writetoraw_portable(self.celltype, self.ana_no, self.mass_dim, self.N, self.wlen, self.days_forAndrea,self.anatomy)
                             write.write_to_fullanatomy(ana_data, self.ana_no, self.coord_x,self.coord_y,self.coord_z, self.days_forAndrea, self.full_anatomy, self.N)
                 """
-        self.mhd_read.write_mhd(self.mhd_data, self.output, self.seed)
-            
+        # self.mhd_read.write_mhd(self.mhd_data, self.output, self.seed)
+        
 
             
-
+"""
 start_time = time.time()
 ts = TumorSim('model_1', 201, [5,6,7,8,9,10],5)
 
@@ -1389,6 +1430,7 @@ with open('output_calls.txt', 'w') as f:
 
 #ts.main()
 #print("--- %s seconds ---" % (time.time() - start_time))
+"""
 
 
 
