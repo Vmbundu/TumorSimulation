@@ -1,9 +1,11 @@
-import variables
+#import variables
 import copy
 import numpy as np
 import os
 import h5py
 import matplotlib.pyplot as plt
+
+'''
 def writeraw_forAndrea():
     tumorex = copy.deepcopy(variables.celltype)
     
@@ -47,7 +49,7 @@ def writeraw_forAndrea():
     kkk_tumor = np.array(kkk_tumor, dtype="uint8")
     kkk_tumor.tofile(les_wana_filepath)
     fID.close
-
+'''
 def writetoraw_portable(celltype, ana_no, mass_dim, N, wlen, days_forAndrea, anatomy, results_folder, seed,loc_it):
     """
         Method to write the data into raw files for the direct tumor environment 
@@ -84,17 +86,17 @@ def writetoraw_portable(celltype, ana_no, mass_dim, N, wlen, days_forAndrea, ana
         os.makedirs(subfold3) 
     
     """
-    subfold = '{:s}/loc_{:d}'.format(results_folder,loc_it)
+    subfold = '{:s}/{:d}'.format(results_folder,seed)
     if os.path.exists(subfold) == False:
         os.makedirs(subfold)
     #les_filepath = 'Results_RawforAndrea/Lesion/tumor_' + str(ana_no) + '_SD' + str(SD) + '_d' + str(d) +'.raw'
     #fID = open(les_filepath, 'w')
     kkk_tumor = np.reshape(tumorex,(N, N, N))
     kkk_tumor = np.array(kkk_tumor, dtype="uint8")
-    with h5py.File('{:s}/loc_{:d}/pcl_{:d}_resTumor.hdf5'.format(results_folder, loc_it, seed), 'a') as f:
-        if 'test_'+str(d) in f:
-            del f['test_'+str(d)]
-        f.create_dataset('test_'+str(d), data = kkk_tumor, compression='gzip')
+    with h5py.File('{:s}/{:d}/pcl_{:d}_resTumor({:d}).hdf5'.format(results_folder, seed, seed, loc_it), 'a') as f:
+        if 'day_'+str(d) in f:
+            del f['day_'+str(d)]
+        f.create_dataset('day_'+str(d), data = kkk_tumor, compression='gzip')
     #kkk_tumor.tofile(les_filepath)
     #fID.close()
 
@@ -118,10 +120,10 @@ def writetoraw_portable(celltype, ana_no, mass_dim, N, wlen, days_forAndrea, ana
     #kkk_tumor.tofile(les_wana_filepath)
     #data.tofile(les_wana_filepath)
     #fID.close
-    with h5py.File("{:s}/loc_{:d}/pcl_{:d}_res.hdf5".format(results_folder, loc_it, seed), 'a') as f:
-        if 'test_'+str(d) in f:
-            del f['test_'+str(d)]
-        f.create_dataset('test_'+str(d), data = data, compression='gzip')
+    with h5py.File("{:s}/{:d}/pcl_{:d}_res({:d}).hdf5".format(results_folder, seed, seed, loc_it), 'a') as f:
+        if 'day_'+str(d) in f:
+            del f['day_'+str(d)]
+        f.create_dataset('day_'+str(d), data = data, compression='gzip')
     return data
 
 def write_to_fullanatomy(data, ana_no, x,y,z, days_forAndrea, full_anatomy, size, results_folder, seed, loc_it):
@@ -141,7 +143,13 @@ def write_to_fullanatomy(data, ana_no, x,y,z, days_forAndrea, full_anatomy, size
     if os.path.exists(subfold4) == False:
         os.makedirs(subfold4)
     """
-    subfold = '{:s}/loc_{:d}'.format(results_folder,loc_it)
+
+    tumorex = copy.deepcopy(data)
+    
+    tumorex[np.where(tumorex>0)] = 1
+    tumorex[np.where(tumorex<=0)] = 0
+
+    subfold = '{:s}/{:d}'.format(results_folder,seed)
     if os.path.exists(subfold) == False:
         os.makedirs(subfold)
     SD = 4
@@ -149,13 +157,14 @@ def write_to_fullanatomy(data, ana_no, x,y,z, days_forAndrea, full_anatomy, size
 
     # les_wana_filepath = 'Results_RawforAndrea/Lesion_wFullAnatomy/tumor_wAndrea_wfullAnatomy_' + str(ana_no) + '_SD' + str(SD) + '_d' + str(d) +'.raw'
     range = int(size/2)
-    full_anatomy[x - range:x+range+1, z - range:z+range+1, y - range: y+range+1] = data
+    #full_anatomy[x - range:x+range+1, z - range:z+range+1, y - range: y+range+1] = data 
+    full_anatomy[x - range:x+range+1, z - range:z+range+1, y - range: y+range+1][tumorex == 1] = 200
     #fID = open(les_wana_filepath, 'w')
     #full_anatomy.tofile(les_wana_filepath)
     #fID.close()
     plt.imshow(full_anatomy[0:,0:,200])
-    plt.savefig("fullAna.jpg")
-    with h5py.File("{:s}/loc_{:d}/pcl_{:d}_resFull.hdf5".format(results_folder, loc_it, seed), 'a') as f:
-        if 'test_'+str(d) in f:
-            del f['test_'+str(d)]
-        f.create_dataset('test_'+str(d), data = full_anatomy, compression='gzip')
+    #plt.savefig("fullAna.jpg")
+    with h5py.File("{:s}/{:d}/pcl_{:d}_resFull({:d}).hdf5".format(results_folder, seed, seed, loc_it), 'a') as f:
+        if 'day_'+str(d) in f:
+            del f['day_'+str(d)]
+        f.create_dataset('day_'+str(d), data = full_anatomy, compression='gzip')
