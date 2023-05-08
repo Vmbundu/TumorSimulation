@@ -1,9 +1,9 @@
 # TumorSimulation
-The code here allows one to grow tumor in silico. This feature will be added to the FDA VICTRE Pipeline
+The code here allows one to grow tumor in silico. This feature will be added to the FDA VICTRE Pipeline. This repository is here to showcase these added features and the code behind it.
 
 Usage
 -----
-
+In order to properly use this code, it is recommended that you have the access to the full VICTRE Pipeline 
 
 | File Name  | Description |
 | ------------- | ------------- |
@@ -14,7 +14,8 @@ Usage
 | `pcl_1_resTumor(1).hdf5` | lesion at different timepoints|
 | `pcl_1_res(1).hdf5` | lesion at different timepoints inserted in the ROI|
 | `pcl_1_resFull(1).hdf5` | lesion at different timepoints inserted in the full phantom|
-| `pcl_1.loc` | file containing the coordinates of the inserted lesions in the phantom (last number is the lesion type: `1` for calcification clusters, `2` for masses)
+| `pcl_1.loc` | file containing the coordinates of the inserted lesions in the phantom (last number is the lesion type: `1` for calcification clusters, `2` for masses)|
+| `spiculation_001.h5` | file that contains tumors with spiculation added|
 | `projection_DM1.raw` | contains the DM projection  in raw format |
 | `reconstruction1.raw` | contains the DBT reconstruction in raw format |
 | `ROIs.h5` | contains the lesion-present and lesion-absent regions of interest|
