@@ -38,6 +38,7 @@ The organization of the Victre pipeline python class is as follows:
 | `writetoraw.py` | python class that writes tumor generation results to files |
 | `spiculation_mass.py` | python class that adds spicualtion growth to tumors |
 | `Constants.py` | Helper file that includes default parameters for all the steps of the pipeline |
+| `scaleImage.py` | Python class that contains functions provide image resizing |
 | `Exceptions.py` | Helper file that defines Victre exceptions |
 | `breastMass` | Folder including the [breastMass](https://github.com/DIDSR/breastMass) software, needs to be pre-compiled |
 | `compression` | Folder including the [breastCompress](https://github.com/DIDSR/breastCompress) software, needs to be pre-compiled |
