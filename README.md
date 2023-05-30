@@ -5,15 +5,18 @@ Usage
 -----
 In order to properly use this code, it is recommended that you have the access to the full VICTRE Pipeline 
 
-Example code for lesion growth(python):
+Example code for lesion growth(python)
+----
 ts = TumorSim('model_1', 201, [5,6,7,8,9,10],5)
 ts.main()
 
-Example code for lesion spiculation(python):
+Example code for lesion spiculation(python)
+----
 massGen = Spicules(mass)
 mass = massGen.generate(seed)
 
-Full Pipeline example:
+Full Pipeline example
+----
 pline = Pipeline(seed=seed,
                      lesion_file=lesion_file,
                      results_folder=arguments["results"],
