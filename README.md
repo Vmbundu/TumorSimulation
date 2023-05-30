@@ -65,7 +65,6 @@ File list
 ---------
 
 The organization of the Victre pipeline python class is as follows:
-* - Denotes the files I added
 | File Name | Description |
 | --------- | ----------- |
 | `Pipeline.py` | Main python class including all code necessary to run the Victre pipeline |
@@ -82,3 +81,5 @@ The organization of the Victre pipeline python class is as follows:
 | `projection` | Folder including the [MC-GPU](https://github.com/DIDSR/VICTRE_MCGPU) software, needs to be pre-compiled |
 | `reconstruction` | Folder including the [FBP](https://github.com/DIDSR/VICTRE/tree/master/FBP%20DBT%20reconstruction%20in%20C) software, needs to be pre-compiled |
 | `ModelObserver` | Folder including the Model Observer class |
+
+"*" - Denotes the files I added
