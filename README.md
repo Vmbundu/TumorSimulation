@@ -1,9 +1,41 @@
 # TumorSimulation
-The code here allows one to grow tumor in silico. This feature will be added to the FDA VICTRE Pipeline. This repository is here to showcase these added features and the code behind it.
+The code here allows one to grow tumor in silico with and without spiculation. This feature will be added to the FDA VICTRE Pipeline. This repository is here to showcase these added features and the code behind it.
 
 Usage
 -----
 In order to properly use this code, it is recommended that you have the access to the full VICTRE Pipeline 
+
+Example code for lesion growth(python):
+ts = TumorSim('model_1', 201, [5,6,7,8,9,10],5)
+ts.main()
+
+Example code for lesion spiculation(python):
+massGen = Spicules(mass)
+mass = massGen.generate(seed)
+
+Full Pipeline example:
+pline = Pipeline(seed=seed,
+                     lesion_file=lesion_file,
+                     results_folder=arguments["results"],
+                     #phantom_file="./Victre/results/{:d}/pc_{:d}_crop.raw.gz".format(seed,seed),
+                     arguments_generation=arg_gen,
+                     roi_sizes=roi_sizes
+                     )
+                     
+pline.generate_phantom()
+
+pline.compress_phantom()
+
+pline.crop()
+
+pline.grow_lesion(time_array=[50], zoom=1.0)
+
+pline.spiculation(testLesion="./Victre/results/{:d}/pcl_{:d}_resTumor(1).hdf5".format(seed,seed), 
+                SpiculFile="./Victre/results/{:d}/spiculated_{:03}.h5".format(seed,seed), day=[12,13,14,15,16,17])
+
+
+
+
 
 | File Name  | Description |
 | ------------- | ------------- |
@@ -30,15 +62,16 @@ File list
 ---------
 
 The organization of the Victre pipeline python class is as follows:
-
+* - Denotes the files I added
 | File Name | Description |
 | --------- | ----------- |
 | `Pipeline.py` | Main python class including all code necessary to run the Victre pipeline |
-| `TumorSim.py` | python class including all code necessary to run tumor simulations |
-| `writetoraw.py` | python class that writes tumor generation results to files |
-| `spiculation_mass.py` | python class that adds spicualtion growth to tumors |
+| `TumorSim.py*` | python class including all code necessary to run tumor simulations |
+| `writetoraw_forAndrea.py*` | python class that writes tumor generation results to files |
+| `spiculation_mass.py*` | python class that adds spicualtion growth to tumors |
 | `Constants.py` | Helper file that includes default parameters for all the steps of the pipeline |
-| `scaleImage.py` | Python class that contains functions provide image resizing |
+| `scaleImage.py*` | Python class that contains functions provide image resizing |
+| `DetectedBoundary.py*` | Python class that dectects the boundary of the tumor ROI |
 | `Exceptions.py` | Helper file that defines Victre exceptions |
 | `breastMass` | Folder including the [breastMass](https://github.com/DIDSR/breastMass) software, needs to be pre-compiled |
 | `compression` | Folder including the [breastCompress](https://github.com/DIDSR/breastCompress) software, needs to be pre-compiled |
