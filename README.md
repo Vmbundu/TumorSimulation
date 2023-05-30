@@ -3,42 +3,7 @@ The code here allows one to grow tumor in silico with and without spiculation. T
 
 Usage
 -----
-In order to properly use this code, it is recommended that you have the access to the full VICTRE Pipeline 
-
-Example code for lesion growth(python)
-----
-ts = TumorSim('model_1', 201, [5,6,7,8,9,10],5)
-ts.main()
-
-Example code for lesion spiculation(python)
-----
-massGen = Spicules(mass)
-mass = massGen.generate(seed)
-
-Full Pipeline example
-----
-pline = Pipeline(seed=seed,
-                     lesion_file=lesion_file,
-                     results_folder=arguments["results"],
-                     #phantom_file="./Victre/results/{:d}/pc_{:d}_crop.raw.gz".format(seed,seed),
-                     arguments_generation=arg_gen,
-                     roi_sizes=roi_sizes
-                     )
-                     
-pline.generate_phantom()
-
-pline.compress_phantom()
-
-pline.crop()
-
-pline.grow_lesion(time_array=[50], zoom=1.0)
-
-pline.spiculation(testLesion="./Victre/results/{:d}/pcl_{:d}_resTumor(1).hdf5".format(seed,seed), 
-                SpiculFile="./Victre/results/{:d}/spiculated_{:03}.h5".format(seed,seed), day=[12,13,14,15,16,17])
-
-
-
-
+In order to properly use this code, it is recommended that you have the access to the full VICTRE Pipeline. However, here are examples that you can test and try out.
 
 | File Name  | Description |
 | ------------- | ------------- |
