@@ -3,7 +3,7 @@ The code here allows one to grow tumor in silico with and without spiculation. T
 
 Usage
 -----
-In order to properly use this code, it is recommended that you have the access to the full VICTRE Pipeline. However, here are examples that you can test and try out.
+In order to properly use this code, it is recommended that you have the access to the full VICTRE Pipeline. However, here are [examples](https://github.com/Vmbundu/TumorSimulation/tree/main/examples) that you can test and try out.
 
 | File Name  | Description |
 | ------------- | ------------- |
