@@ -50,7 +50,7 @@ def writeraw_forAndrea():
     kkk_tumor.tofile(les_wana_filepath)
     fID.close
 '''
-def writetoraw_portable(celltype, ana_no, mass_dim, N, wlen, days_forAndrea, anatomy, results_folder, seed,loc_it):
+def writetoraw_portable(celltype, ana_no, mass_dim, N, wlen, iteration, anatomy, results_folder, seed,loc_it):
     """
         Method to write the data into raw files for the direct tumor environment 
         :param celltype: celltype data
@@ -71,7 +71,7 @@ def writetoraw_portable(celltype, ana_no, mass_dim, N, wlen, days_forAndrea, ana
     mid_dim = round(mass_dim/2)
 
     SD = 4
-    d = days_forAndrea
+    d = iteration
     """
     subfold1 = 'Results_RawforAndrea/Lesion'
     subfold2 = 'Results_RawforAndrea/Lesion_wAnatomy'
@@ -89,19 +89,15 @@ def writetoraw_portable(celltype, ana_no, mass_dim, N, wlen, days_forAndrea, ana
     subfold = '{:s}/{:d}'.format(results_folder,seed)
     if os.path.exists(subfold) == False:
         os.makedirs(subfold)
-    #les_filepath = 'Results_RawforAndrea/Lesion/tumor_' + str(ana_no) + '_SD' + str(SD) + '_d' + str(d) +'.raw'
-    #fID = open(les_filepath, 'w')
+    
     kkk_tumor = np.reshape(tumorex,(N, N, N))
     kkk_tumor = np.array(kkk_tumor, dtype="uint8")
     with h5py.File('{:s}/{:d}/pcl_{:d}_resTumor({:d}).hdf5'.format(results_folder, seed, seed, loc_it), 'a') as f:
-        if 'day_'+str(d) in f:
-            del f['day_'+str(d)]
-        f.create_dataset('day_'+str(d), data = kkk_tumor, compression='gzip')
-    #kkk_tumor.tofile(les_filepath)
-    #fID.close()
+        if 'iter_'+str(d) in f:
+            del f['iter_'+str(d)]
+        f.create_dataset('iter_'+str(d), data = kkk_tumor, compression='gzip')
+    
 
-    #les_wana_filepath = 'Results_RawforAndrea/Lesion_wAnatomy/tumor_wAndrea' + str(ana_no) + '_SD' + str(SD) + '_d' + str(d) +'.raw'
-    #atmy_thickliga_filepath = 'Results_Raw/PostProcessed_Anatomy/anatomy' + str(ana_no) + '_thickliga.raw'
     atmy_thickliga_filepath = anatomy
     fID = open(atmy_thickliga_filepath, 'r')
     data = np.fromfile(fID, dtype=np.uint8, count = wlen, sep="")
@@ -110,23 +106,20 @@ def writetoraw_portable(celltype, ana_no, mass_dim, N, wlen, days_forAndrea, ana
     datas[les_pos] = 50
     fID.close
 
-    #fID = open(les_wana_filepath, 'w')
-    #kkk_tumor = np.reshape(datas,(N, N, N))
+    
     data = np.reshape(datas,(N,N,N))
-    #kkk_tumor = np.array(kkk_tumor, dtype="uint8")
+    
     data = np.array(data, dtype="uint8")
     tumorex = np.reshape(tumorex,(N,N,N))
     data[np.where(tumorex == 1)] = 200
-    #kkk_tumor.tofile(les_wana_filepath)
-    #data.tofile(les_wana_filepath)
-    #fID.close
+    
     with h5py.File("{:s}/{:d}/pcl_{:d}_res({:d}).hdf5".format(results_folder, seed, seed, loc_it), 'a') as f:
-        if 'day_'+str(d) in f:
-            del f['day_'+str(d)]
-        f.create_dataset('day_'+str(d), data = data, compression='gzip')
+        if 'iter_'+str(d) in f:
+            del f['iter_'+str(d)]
+        f.create_dataset('iter_'+str(d), data = data, compression='gzip')
     return data
 
-def write_to_fullanatomy(data, ana_no, x,y,z, days_forAndrea, full_anatomy, size, results_folder, seed, loc_it):
+def write_to_fullanatomy(data, ana_no, x,y,z, iteration, full_anatomy, size, results_folder, seed, loc_it):
     """
         Method to write the data into raw files for the full anatomy
         :param data: tumor data points
@@ -134,7 +127,7 @@ def write_to_fullanatomy(data, ana_no, x,y,z, days_forAndrea, full_anatomy, size
         :param x: x coordinate of the tumor within the full anatomy 
         :param y: y coordinate of the tumor within the full anatomy
         :param z: z coordinate of the tumor within the full anatomy
-        :param days_forAndrea: days that have elapsed for the tumor
+        :param iteration: tumor growth interation of interest
         :param full_anatomy: data points for the full anatomy
         :param size: size of the direct tumor environment
 
@@ -153,18 +146,12 @@ def write_to_fullanatomy(data, ana_no, x,y,z, days_forAndrea, full_anatomy, size
     if os.path.exists(subfold) == False:
         os.makedirs(subfold)
     SD = 4
-    d = days_forAndrea
+    d = iteration
 
-    # les_wana_filepath = 'Results_RawforAndrea/Lesion_wFullAnatomy/tumor_wAndrea_wfullAnatomy_' + str(ana_no) + '_SD' + str(SD) + '_d' + str(d) +'.raw'
     range = int(size/2)
-    #full_anatomy[x - range:x+range+1, z - range:z+range+1, y - range: y+range+1] = data 
     full_anatomy[x - range:x+range+1, z - range:z+range+1, y - range: y+range+1][tumorex == 1] = 200
-    #fID = open(les_wana_filepath, 'w')
-    #full_anatomy.tofile(les_wana_filepath)
-    #fID.close()
-    plt.imshow(full_anatomy[0:,0:,200])
-    #plt.savefig("fullAna.jpg")
+    
     with h5py.File("{:s}/{:d}/pcl_{:d}_resFull({:d}).hdf5".format(results_folder, seed, seed, loc_it), 'a') as f:
-        if 'day_'+str(d) in f:
-            del f['day_'+str(d)]
-        f.create_dataset('day_'+str(d), data = full_anatomy, compression='gzip')
+        if 'iter_'+str(d) in f:
+            del f['iter_'+str(d)]
+        f.create_dataset('iter_'+str(d), data = full_anatomy, compression='gzip')

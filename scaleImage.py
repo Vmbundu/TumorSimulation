@@ -5,6 +5,15 @@ import h5py
 
 
 def resize(im, new_w, new_h, keepStructure=False):
+    """
+            2D resizing of image 
+
+            :param im: Image file
+            :param new_w: new width for the zoomed image
+            :param new_h: new height for the zoomed image
+            :param keepStructure: boolean to determine if structure of phantom is altered by zoom
+            :returns: resized image array
+        """
     width, height = im.shape
 
     newIm = np.zeros((new_w, new_h))
@@ -43,7 +52,17 @@ def resize(im, new_w, new_h, keepStructure=False):
     return newIm
 
 
-def resize3D(im, new_w, new_h, new_d, keepStructure=False):
+def resize3D(im, new_w, new_h, new_d, keepStructure=True):
+    """
+            3D resizing of image 
+
+            :param im: Image file
+            :param new_w: new width for the zoomed image
+            :param new_h: new height for the zoomed image
+            :param new_d: new depth for the zoomed image
+            :param keepStructure: boolean to determine if structure of phantom is altered by zoom
+            :returns: resized image array
+    """
     depth, width, height = im.shape
 
     newIm = np.zeros((new_d, new_w, new_h))
@@ -89,11 +108,11 @@ def resize3D(im, new_w, new_h, new_d, keepStructure=False):
                 else:
                     loc = (int(round(old_z)), int(
                         round(old_y)), int(round(old_x)))
-                    newIm[new_z, new_y, new_x] = im[loc[0], loc[1], loc[2]]
+                    newIm[new_z, new_y, new_x] = im[loc[2], loc[1], loc[0]]
 
     return newIm
 
-
+'''
 with h5py.File("MID/pcl_4_res.hdf5", "r") as hf:
     im3D = hf["day_1"][()]
 
@@ -144,3 +163,4 @@ ax3.imshow(np.vstack(reIm3D2))
 ax3.set_title("RESCALED 3D (MAX)")
 
 plt.show()
+'''

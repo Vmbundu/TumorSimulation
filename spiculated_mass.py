@@ -33,10 +33,26 @@ class Spicules():
             self.perimeter = self._get_perimeter_image(core)
 
         self.params.update(params)
-        self.extend = True
+        self.extend = 0
+        self.count = 0
 
     def line(self, arr, x0, y0, z0, x1, y1, z1, thickness):
-        "Bresenham's line algorithm"
+        """
+            Bresenham's line algorithm
+
+            :param arr: array of interest
+            :param x0: x-coordinate of the beginning point
+            :param y0: y-coordinate of the beginning point
+            :param z0: z-coordinate of the beginning point
+            :param x1: x-coordinate of the endpoint
+            :param y1: y-coordinate of the endpoint 
+            :param z1: z-coordinate of the endpoint 
+            :param thickness: line thickness
+            :return: array of the line
+
+        """
+
+
 
         temp = np.zeros(arr.shape).astype(bool)
 
@@ -107,10 +123,26 @@ class Spicules():
         arr += temp
 
     def normalize(self, arr):
+        """
+            Normalizes array values
+
+            :param arr: Array of interest 
+            :returns: Nomralized array
+        """
         dirSize = np.sqrt(arr[0]**2 + arr[1]**2 + arr[2]**2)
         return [arr[0] / dirSize, arr[1] / dirSize, arr[2] / dirSize]
 
     def create_circular_mask(self, h, w, d, center=None, radius=None):
+        """
+            Creates a circular image mask
+
+            :param h: height
+            :param w: width
+            :param d: depth
+            :param center: the location of the mask's center
+            :param raidus: Radius of the circle
+            :returns: the mask array 
+        """
         if center is None:  # use the middle of the image
             center = (int(w / 2), int(h / 2), int(d / 2))
         if radius is None:  # use the smallest distance between the center and image walls
@@ -127,12 +159,25 @@ class Spicules():
         return mask.astype(bool), perimeter.astype(bool)
 
     def saveHDF5(self, filename, volume):
+        """
+            Saves the spiculation file
+
+            :param filename: The filename
+            :param volume: the volume data of the tumor
+            :returns: the tumor spiculation file 
+        """
         # save in HDF
         with h5py.File(filename, "w") as hf:
             hf.create_dataset("volume", data=volume,
                               compression="gzip", track_times=False)
 
     def generate(self, seed):
+        """
+            Generates the tumor spicualtion
+
+            :param seed: seed value
+            :returns: tumor mass with spicualtion, spiculation data array
+        """
         arr = np.zeros((self.core.shape[0], self.core.shape[1],
                        self.core.shape[2])).astype(bool)
         spicules = []
@@ -184,7 +229,31 @@ class Spicules():
                     posz = int(current["z"] + step * dir[2])
 
                     if posx < 0 or posy < 0 or posz < 0 or posx >= arr.shape[0] or posy >= arr.shape[1] or posz >= arr.shape[2]:
-                        if self.extend:
+                        if self.count < 5:
+                            self.count += 1
+                            #activeNodes[idc]["active"] = False
+                            continue
+                        else:
+                            self.core = np.uint8(self.core)
+                            arr = np.uint8(arr)
+                            self.core = np.pad(self.core, 50, mode='constant')
+                            arr = np.pad(arr, 50, mode='constant')
+
+                            arr = arr.astype(bool)
+                            self.core = self.core.astype(bool)
+                            
+                            self.perimeter = self._get_perimeter_image(self.core)
+
+                            for sp in spicules:
+                                for act in sp:
+                                    act["x"] = act["x"] + 50
+                                    act["y"] = act["y"] + 50
+                                    act["z"] = act["z"] + 50
+                            #activeNodes[idc]["active"] = False
+                            self.extend += 50
+                            self.count = 0
+                            continue
+                        '''if self.extend:
                             self.core = np.uint8(self.core)
                             arr = np.uint8(arr)
                             self.core = np.pad(self.core, 50, mode='constant')
@@ -205,7 +274,7 @@ class Spicules():
                             continue
                         else:
                             activeNodes[idc]["active"] = False
-                            continue
+                            continue '''
 
                     self.line(arr, current["x"], current["y"],
                               current["z"], posx, posy, posz, current["th"])
@@ -236,7 +305,6 @@ class Spicules():
             spicules.append(activeNodes)
         bar.finish()
 
-        #self.core = np.pad(self.core, 15, mode='constant')
         mass = np.zeros((self.core.shape[0], self.core.shape[1],
                         self.core.shape[2])).astype(bool)
         mass += self.core
@@ -249,7 +317,20 @@ class Spicules():
         # self.saveHDF5("projectsML/Y2023/spiculations/examples3D/spiculated_{:04}.h5".format(
         #     seed), mass.astype(np.uint8))
 
-    def generate_cont(self, seed, spicule, arr):
+    def generate_cont(self, seed, spicule, arr, core):
+        """
+            Continuous tumor spiculation growth  
+
+            :param seed: seed value
+            :param spicule: spiculation data array
+            :param arr: arr of interests
+            :param core: tumor model spicualtion grows on
+            :returns: List of coordinates as voxels
+        """
+        self.core = core
+        self.core = np.pad(self.core, self.extend, mode='constant')
+        self.core = self.core.astype(bool)
+        self.count = 0
         self.params["numSpicules"] = self.params["numSpicules"] + 20
         #self.params["maxGrowth"] = self.params["maxGrowth"] + 10
         #growth = 0
@@ -257,8 +338,9 @@ class Spicules():
         bar = progressbar.ProgressBar(max_value=self.params["numSpicules"])
         spi_size = len(spicule)
         dir_inx = 0
-        #arr = self.binary_dilation(
-        #    arr, skimage.morphology.ball(self.params["thickness"]+1 // 2))
+        arr = self.binary_dilation(
+            arr, skimage.morphology.ball(self.params["thickness"] // 2))
+        
         for spic in range(self.params["numSpicules"]):
             bar.update(spic)
             # Add spicule thickening with binary_dilation
@@ -317,7 +399,32 @@ class Spicules():
                     posz = int(current["z"] + step * dir[2])
 
                     if posx < 0 or posy < 0 or posz < 0 or posx >= arr.shape[0] or posy >= arr.shape[1] or posz >= arr.shape[2]:
-                        if self.extend == True:
+                        if self.count < 5:
+                            self.count += 1
+                            #activeNodes[idc]["active"] = False
+                            continue
+                        else:
+                            self.core = np.uint8(self.core)
+                            arr = np.uint8(arr)
+                            self.core = np.pad(self.core, 50, mode='constant')
+                            arr = np.pad(arr, 50, mode='constant')
+
+                            arr = arr.astype(bool)
+                            self.core = self.core.astype(bool)
+                            
+                            self.perimeter = self._get_perimeter_image(self.core)
+
+                            for sp in spicule:
+                                for act in sp:
+                                    act["x"] = act["x"] + 50
+                                    act["y"] = act["y"] + 50
+                                    act["z"] = act["z"] + 50
+                            #activeNodes[idc]["active"] = False
+                            self.extend += 50
+                            self.count = 0
+                            continue
+                        
+                        '''if self.extend == True:
                             self.core = np.uint8(self.core)
                             arr = np.uint8(arr)
                             self.core = np.pad(self.core, 50, mode='constant')
@@ -338,7 +445,7 @@ class Spicules():
                             continue
                         else:
                             activeNodes[idc]["active"] = False
-                            continue
+                            continue '''
 
                     self.line(arr, current["x"], current["y"],
                               current["z"], posx, posy, posz, current["th"])
@@ -475,6 +582,11 @@ class Spicules():
         This function removes pixels around objects' perimeter in an image and returns
         the result as an image.
         See the `binary_dilation` function doc-string for the arguments and retuned value.
+
+        :param image: image that is being eroded
+        :param selem: structuring element 
+        :param out: output array
+        :return: the newly adjusted array
         '''
         if not isinstance(image, np.ndarray):
             image = np.asarray(image)
@@ -493,6 +605,11 @@ class Spicules():
 
         This function dilates an image and then erodes the dilation result.
         See the `binary_dilation` function doc-string for the arguments and retuned value.
+
+        :param image: image that is being eroded
+        :param selem: structuring element 
+        :param out: output array
+        :return: the newly adjusted array
         '''
         out_image = self.binary_erosion(
             self.binary_dilation(image, selem), selem, out)
@@ -504,6 +621,11 @@ class Spicules():
 
         This function erodes an image and then dilates the eroded result.
         See the `binary_dilation` function doc-string for arguments and retuned value.
+
+        :param image: image that is being eroded
+        :param selem: structuring element 
+        :param out: output array
+        :return: the newly adjusted array
         '''
         out_image = self.binary_dilation(
             self.binary_erosion(image, selem), selem, out)
