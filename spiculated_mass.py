@@ -183,8 +183,8 @@ class Spicules():
         spicules = []
         np.random.seed(seed)
         bar = progressbar.ProgressBar(max_value=self.params["numSpicules"])
-        for spic in range(self.params["numSpicules"]):
-            bar.update(spic)
+        for spicu in range(self.params["numSpicules"]):
+            bar.update(spicu)
             flatPerimeter = np.where(self.perimeter.flatten())[0]
             posFlat = np.unravel_index(
                 flatPerimeter[np.random.randint(0, len(flatPerimeter))], arr.shape)
@@ -472,7 +472,7 @@ class Spicules():
                             "dir": dir,
                             "th": activeNodes[idc]["th"],
                             "active": True})
-            spicule[spic] = activeNodes
+            spicule[spicu] = activeNodes
                 
 
         mass = np.zeros((self.core.shape[0], self.core.shape[1],
